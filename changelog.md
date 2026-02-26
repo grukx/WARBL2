@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## [Unreleased]
 
+### Added
+
+- Ternary custom fingering charts: 384-entry charts that distinguish three thumb states (closed, pinched, open) with 128 entries each. Firmware receives on CC 109 values 104-107 (vs 100-103 for legacy 256-entry charts). EEPROM stores in [closed:128][pinched:128][open:128] format.
+
+- Configuration Tool support for ternary charts: toggle to switch between 256-entry (standard) and 384-entry (ternary) mode, comma-separated value support in paste field, "Copy closed to pinched" button, and visual thumb state indicator.
+
+- Default ternary fingering chart for baroque soprano recorder in C (based on Moeck GT03), available at `webconfig/charts/baroque_recorder_ternary.txt`.
+
 ## [4.6] - 2026-4-2
 
 ### Changed

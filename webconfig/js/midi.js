@@ -1106,10 +1106,10 @@ function WARBL_Receive(event, source) {
                 else if (data1 == MIDI_CC_104) {
                     jumpFactorWrite = data2;
                 } // so we know which pressure setting is going to be received.
-                else if (data1 == MIDI_CC_109 && data2 != MIDI_CUSTOM_CHARTS_RCVD) {
+                else if (data1 == MIDI_CC_109 && data2 != MIDI_CUSTOM_CHARTS_RCVD && data2 != MIDI_TERNARY_CHARTS_RCVD) {
                     jumpFactorWrite = data2 + MIDI_CC_109_OFFSET;
                 } // so we know which WARBL2 IMU setting is going to be received.
-                else if (data1 == MIDI_CC_109 && data2 == MIDI_CUSTOM_CHARTS_RCVD) { //Successful WARBL2 Custom chart receipt
+                else if (data1 == MIDI_CC_109 && (data2 == MIDI_CUSTOM_CHARTS_RCVD || data2 == MIDI_TERNARY_CHARTS_RCVD)) { //Successful WARBL2 Custom chart receipt
                     document.getElementById("sending").innerHTML = "Success!";
                     document.getElementById("WARBL2CustomSuccessOkay").style.display = "block";
                     document.getElementById('WARBL2customFingeringFill').value = '10';
@@ -2364,6 +2364,24 @@ function sendCustomFingeringFill() {
 
 
 
+function parseChartValues(text) {
+    // Support both newline-separated and comma-separated values
+    var values;
+    if (text.indexOf(',') !== -1) {
+        values = text.split(',');
+    } else {
+        values = text.split('\n');
+    }
+    // Trim whitespace and remove trailing empty entry
+    for (var i = 0; i < values.length; i++) {
+        values[i] = values[i].trim();
+    }
+    if (values.length > 0 && values[values.length - 1] === '') {
+        values.pop();
+    }
+    return values;
+}
+
 function sendWARBL2CustomFingeringFill() {
     modalclose(24);
     modal(25);
@@ -2371,22 +2389,22 @@ function sendWARBL2CustomFingeringFill() {
     selection = parseFloat(selection);
 
     var textArea = document.getElementById('WARBL2CustomTextArea');
-    var lines = textArea.value.split('\n');    // lines is an array of strings
+    var values = parseChartValues(textArea.value);
 
-    // Loop through all lines
-    for (var j = 0; j < lines.length; j++) {
-        //console.log('Line ' + j + ' is ' + lines[j])
+    var isTernary = (values.length === 384);
+    var isLegacy = (values.length === 256);
 
-        //validate
-        if (!(lines.length == 257 || lines.length == 256)) { //there may be a blank line at the end
-            modalclose(25);
-            alert("There must be 256 MIDI notes. Please try again.");
-            document.getElementById('WARBL2customFingeringFill').value = '10';
-            document.getElementById("WARBL2CustomTextArea").value = '';
-            return;
+    if (!isTernary && !isLegacy) {
+        modalclose(25);
+        alert("There must be 256 or 384 MIDI notes. Please try again.");
+        document.getElementById('WARBL2customFingeringFill').value = '10';
+        document.getElementById("WARBL2CustomTextArea").value = '';
+        return;
+    }
 
-        }
-        if (lines[j] < 0 || lines[j] > 127 || isNaN(lines[j])) {
+    // Validate all values are 0-127
+    for (var j = 0; j < values.length; j++) {
+        if (values[j] < 0 || values[j] > 127 || isNaN(values[j])) {
             modalclose(25);
             alert("Each MIDI note must be in the range of 0 to 127.");
             document.getElementById('WARBL2customFingeringFill').value = '10';
@@ -2394,18 +2412,74 @@ function sendWARBL2CustomFingeringFill() {
             return;
         }
     }
-    //console.log(selection + 100);
-    sendToWARBL(MIDI_CC_109, (selection + MIDI_CUSTOM_CHARTS_START));
-    for (var k = 0; k < 256; k++) {
-        sendToWARBL(MIDI_CC_105, lines[k]);
+
+    if (isTernary) {
+        sendToWARBL(MIDI_CC_109, (selection + MIDI_TERNARY_CHARTS_START));
+        for (var k = 0; k < 384; k++) {
+            sendToWARBL(MIDI_CC_105, values[k]);
+        }
+    } else {
+        sendToWARBL(MIDI_CC_109, (selection + MIDI_CUSTOM_CHARTS_START));
+        for (var k = 0; k < 256; k++) {
+            sendToWARBL(MIDI_CC_105, values[k]);
+        }
     }
-
-
-    //modalclose(25);
 }
 
 
 
+
+
+function toggleTernaryMode(enabled) {
+    var container = document.getElementById("WARBL2customControls");
+    var copyBtn = document.getElementById("copyClosedToPinchedBtn");
+
+    if (enabled) {
+        container.classList.add("ternaryMode");
+        copyBtn.style.display = "block";
+        document.getElementById("WARBL2CustomTextArea").placeholder = "Paste 384 values here\n(128 closed + 128 pinched + 128 open)";
+    } else {
+        container.classList.remove("ternaryMode");
+        copyBtn.style.display = "none";
+        document.getElementById("WARBL2CustomTextArea").placeholder = "Paste custom chart here";
+    }
+}
+
+function copyClosedToPinched() {
+    var textArea = document.getElementById("WARBL2CustomTextArea");
+    var values = parseChartValues(textArea.value);
+
+    if (values.length < 128) {
+        alert("Need at least 128 values in the thumb-closed section to copy.");
+        return;
+    }
+
+    // Copy first 128 values into positions 128-255
+    var closedSection = values.slice(0, 128);
+
+    // Build the result: keep closed (0-127), overwrite pinched (128-255), keep open (256-383)
+    var result = closedSection.slice(); // 0-127
+    result = result.concat(closedSection); // 128-255 (copy of closed)
+
+    if (values.length > 256) {
+        result = result.concat(values.slice(256, 384)); // 256-383 (keep existing open)
+    } else if (values.length > 128) {
+        // If there are some values beyond 128 but fewer than 256, pad the open section
+        var openSection = values.slice(256);
+        while (openSection.length < 128) openSection.push("0");
+        result = result.concat(openSection);
+    } else {
+        // Only closed section exists; fill pinched (already done) and open with zeros
+        var zeros = [];
+        for (var i = 0; i < 128; i++) zeros.push("0");
+        result = result.concat(zeros);
+    }
+
+    // Determine separator used in original
+    var separator = (textArea.value.indexOf(',') !== -1) ? ',' : '\n';
+    textArea.value = result.join(separator);
+    updateTernaryThumbIndicator();
+}
 
 
 // MrMep: I don't think this applies to WARBL2
@@ -3858,7 +3932,10 @@ function configureCustomFingering() {
         document.getElementById("topControls").style.display = "none";
         document.getElementById('WARBL2customFingeringFill').value = '10';
         document.getElementById("WARBL2CustomTextArea").value = '';
+        document.getElementById("ternaryCheckbox").checked = false;
+        toggleTernaryMode(false);
         document.getElementById("WARBL2customControls").style.display = "block";
+
     }
 }
 

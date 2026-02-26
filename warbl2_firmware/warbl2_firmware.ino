@@ -152,8 +152,9 @@ byte defaultPreset = 0;  // The default preset, from 0-2.
 
 // WARBL2 variables that are independent of preset
 byte WARBL2settings[] = { 2, 1, 5 };   // See defines above
-uint8_t WARBL2CustomChart[256];        // The currently selected custom fingering chart. This is only populated if a custom chart is currently selected or if we're transferring a chart from the Config Tool to EEPROM.
-int WARBL2CustomChartReceiveByte = 0;  // The byte in the custom chart currently being received from the Config Tool
+uint8_t WARBL2CustomChart[CUSTOM_CHART_TERNARY_SIZE];  // Active custom chart in RAM. Layout: [open:128][closed:128][pinched:128]. Legacy charts have pinched = copy of closed. Also used as receive buffer during MIDI upload.
+int WARBL2CustomChartReceiveByte = 0;                  // The byte in the custom chart currently being received from the Config Tool
+bool WARBL2CustomChartIsTernary = false;               // Whether the loaded custom chart is a 384-entry ternary chart
 
 
 // Variables that can change according to preset.

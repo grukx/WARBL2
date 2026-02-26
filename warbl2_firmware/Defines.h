@@ -63,6 +63,20 @@
 #define kWARBL2Custom4 70
 #define kModeNModes 29
 
+// Thumb state values for ternary chart lookup (get_chart_entry)
+#define THUMB_CLOSED 0
+#define THUMB_PINCHED 1
+#define THUMB_OPEN 2
+
+// Custom chart sizes
+#define CUSTOM_CHART_LEGACY_SIZE 256
+#define CUSTOM_CHART_TERNARY_SIZE 384
+
+// Custom chart EEPROM version byte values
+#define CUSTOM_CHART_VERSION_LEGACY 1   // 256-entry format stored in legacy area
+#define CUSTOM_CHART_VERSION_TERNARY 2  // 384-entry format stored in ternary area
+// 0xFF (unwritten EEPROM) = treat as legacy
+
 // Pitch bend modes
 #define kPitchBendSlideVibrato 0
 #define kPitchBendVibrato 1
@@ -689,7 +703,11 @@
 #define MIDI_CC_109_VALUE_101 101  // Bidirectional. Indicates that  WARBL2 custom fingering chart 2 is about to be sent on CC 105.
 #define MIDI_CC_109_VALUE_102 102  // Bidirectional. Indicates that  WARBL2 custom fingering chart 3 is about to be sent on CC 105.
 #define MIDI_CC_109_VALUE_103 103  // Bidirectional. Indicates that  WARBL2 custom fingering chart 4 is about to be sent on CC 105.
-                                   /* 104-126	unused */
+#define MIDI_CC_109_VALUE_104 104  // Bidirectional. Indicates that WARBL2 ternary custom fingering chart 1 (384-entry) is about to be sent on CC 105.
+#define MIDI_CC_109_VALUE_105 105  // Bidirectional. Indicates that WARBL2 ternary custom fingering chart 2 (384-entry) is about to be sent on CC 105.
+#define MIDI_CC_109_VALUE_106 106  // Bidirectional. Indicates that WARBL2 ternary custom fingering chart 3 (384-entry) is about to be sent on CC 105.
+#define MIDI_CC_109_VALUE_107 107  // Bidirectional. Indicates that WARBL2 ternary custom fingering chart 4 (384-entry) is about to be sent on CC 105.
+                                   /* 108-126	unused */
 #define MIDI_CC_109_VALUE_127 127  // From WARBL. Indicates button/gesture action will be sent on CC 105
 
 
@@ -769,10 +787,15 @@
 #define MIDI_WARBL2_SETTINGS_END MIDI_CC_106_VALUE_74      // Bidirectional. WARBL2 settings array (for settings that are independent of preset)
 #define MIDI_BUTTON_ACTIONS_START MIDI_CC_106_VALUE_100    // Bidirectional. Button action 0
 
-#define MIDI_CUSTOM_CHARTS_START MIDI_CC_109_VALUE_100                                   // Beginning of WARBL2 CustomCharts
-#define MIDI_CUSTOM_CHARTS_END MIDI_CC_109_VALUE_103                                     // End of WARBL2 CustomCharts
-#define MIDI_CUSTOM_CHARTS_OFFSET_START (MIDI_CC_109_OFFSET + MIDI_CUSTOM_CHARTS_START)  // Beginning of WARBL2 CustomCharts
-#define MIDI_CUSTOM_CHARTS_OFFSET_END (MIDI_CC_109_OFFSET + MIDI_CUSTOM_CHARTS_END)      // End of WARBL2 CustomCharts
+#define MIDI_CUSTOM_CHARTS_START MIDI_CC_109_VALUE_100                                   // Beginning of WARBL2 legacy CustomCharts (256-entry)
+#define MIDI_CUSTOM_CHARTS_END MIDI_CC_109_VALUE_103                                     // End of WARBL2 legacy CustomCharts
+#define MIDI_CUSTOM_CHARTS_OFFSET_START (MIDI_CC_109_OFFSET + MIDI_CUSTOM_CHARTS_START)  // Beginning of WARBL2 legacy CustomCharts
+#define MIDI_CUSTOM_CHARTS_OFFSET_END (MIDI_CC_109_OFFSET + MIDI_CUSTOM_CHARTS_END)      // End of WARBL2 legacy CustomCharts
+
+#define MIDI_TERNARY_CHARTS_START MIDI_CC_109_VALUE_104                                      // Beginning of WARBL2 ternary CustomCharts (384-entry)
+#define MIDI_TERNARY_CHARTS_END MIDI_CC_109_VALUE_107                                        // End of WARBL2 ternary CustomCharts
+#define MIDI_TERNARY_CHARTS_OFFSET_START (MIDI_CC_109_OFFSET + MIDI_TERNARY_CHARTS_START)    // Beginning of WARBL2 ternary CustomCharts
+#define MIDI_TERNARY_CHARTS_OFFSET_END (MIDI_CC_109_OFFSET + MIDI_TERNARY_CHARTS_END)        // End of WARBL2 ternary CustomCharts
 
 /* Various single Values */
 #define MIDI_MOMENTARY_OFF MIDI_CC_102_VALUE_117  // Bidirectional. momentary off
@@ -808,7 +831,8 @@
 #define MIDI_CC_119_MSG MIDI_SEND_CC, MIDI_CC_119
 
 /* Full sendMidi Args - WITH VALUES - <CONTROL_CHANGE, MIDI channel, CC Number, CC Value> */
-#define MIDI_CUSTOM_CHARTS_RCVD MIDI_CC_109_MSG, MIDI_CC_109_VALUE_100  //from WARBL. WARBL2 Custom fingering charts - indicate success
+#define MIDI_CUSTOM_CHARTS_RCVD MIDI_CC_109_MSG, MIDI_CC_109_VALUE_100          // from WARBL. Legacy custom chart upload success
+#define MIDI_TERNARY_CHARTS_RCVD MIDI_CC_109_MSG, MIDI_CC_109_VALUE_104        // from WARBL. Ternary custom chart upload success
 
 //sendMIDICouplet *PARTIAL* Arguments
 #define MIDI_SEND_DRONES_PRESSURE_LSB MIDI_CC_104, MIDI_CC_104_VALUE_32, MIDI_CC_105     // Bidirectional. Settings for current preset: Indicates that lsb of drones pressure is about to be sent on CC 105
@@ -899,10 +923,15 @@
 #define EEPROM_ATMEGA_FIRMWARE_VERSION 1995  // ATmega firmware version
 /* 1996-1999 unused, room for more settings */
 #define EEPROM_FACTORY_SETTINGS_START 2000  // 2001-3999 locations of factory settings (duplicates of 1-1999, for restoring settings)
-#define EEPROM_CUSTOM_FINGERING_START 4000  // 4000-4255		Custom fingering chart 1 \
-                                            // 4256-4511		Custom fingering chart 2 \
-                                            // 4512-4767		Custom fingering chart 3 \
-                                            // 4768-5023		Custom fingering chart 4
-/* 5024-16383 other ~11 KB unused */
+#define EEPROM_CUSTOM_FINGERING_START 4000  // 4000-4255		Legacy custom fingering chart 1 (256 bytes) \
+                                            // 4256-4511		Legacy custom fingering chart 2 (256 bytes) \
+                                            // 4512-4767		Legacy custom fingering chart 3 (256 bytes) \
+                                            // 4768-5023		Legacy custom fingering chart 4 (256 bytes)
+#define EEPROM_CUSTOM_CHART_VERSION_START 5024  // 5024-5027	Version byte per custom chart slot (0xFF=uninitialized, 1=legacy, 2=ternary)
+#define EEPROM_CUSTOM_TERNARY_START 5028        // 5028-5411	Ternary custom fingering chart 1 (384 bytes) \
+                                                // 5412-5795	Ternary custom fingering chart 2 (384 bytes) \
+                                                // 5796-6179	Ternary custom fingering chart 3 (384 bytes) \
+                                                // 6180-6563	Ternary custom fingering chart 4 (384 bytes)
+/* 6564-16383 other ~10 KB unused */
 
 /* END of EEPROM Addresses */

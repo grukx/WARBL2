@@ -389,7 +389,11 @@ const MIDI_CC_109 = 109; // From WARBL. Values as follows:
     const MIDI_CC_109_VALUE_101 = 101; // Bidirectional. Indicates that WARBL2 custom fingering chart 2 is about to be sent on CC 105. 
     const MIDI_CC_109_VALUE_102 = 102; // Bidirectional. Indicates that WARBL2 custom fingering chart 3 is about to be sent on CC 105. 
     const MIDI_CC_109_VALUE_103 = 103; // Bidirectional. Indicates that WARBL2 custom fingering chart 4 is about to be sent on CC 105. 
-	/* 104-126	unused */
+    const MIDI_CC_109_VALUE_104 = 104; // Bidirectional. Indicates that WARBL2 ternary custom fingering chart 1 (384-entry) is about to be sent on CC 105. Same command from WARBL indicates success.
+    const MIDI_CC_109_VALUE_105 = 105; // Bidirectional. Ternary custom fingering chart 2
+    const MIDI_CC_109_VALUE_106 = 106; // Bidirectional. Ternary custom fingering chart 3
+    const MIDI_CC_109_VALUE_107 = 107; // Bidirectional. Ternary custom fingering chart 4
+	/* 108-126	unused */
     const MIDI_CC_109_VALUE_127 = 127; // From WARBL. Indicates button/gesture action will be sent on CC 105
 
 
@@ -472,6 +476,9 @@ const MIDI_CUSTOM_CHARTS_END = MIDI_CC_109_VALUE_103; //End of WARBL2 CustomChar
 const MIDI_CUSTOM_CHARTS_OFFSET_START = MIDI_CC_109_OFFSET + MIDI_CUSTOM_CHARTS_START; //Beginning of WARBL2 CustomCharts
 const MIDI_CUSTOM_CHARTS_OFFSET_END = MIDI_CC_109_OFFSET + MIDI_CUSTOM_CHARTS_END; //End of WARBL2 CustomCharts
 
+const MIDI_TERNARY_CHARTS_START = MIDI_CC_109_VALUE_104; //Beginning of WARBL2 ternary CustomCharts (384-entry)
+const MIDI_TERNARY_CHARTS_END = MIDI_CC_109_VALUE_107; //End of WARBL2 ternary CustomCharts
+
 /* Various single Values */
 const MIDI_MOMENTARY_OFF = MIDI_CC_102_VALUE_117; // Bidirectional. momentary off
 const MIDI_MOMENTARY_ON = MIDI_CC_102_VALUE_118; // Bidirectional. momentary on
@@ -495,6 +502,7 @@ const MIDI_IMU_SETTINGS_START =  MIDI_CC_109_VALUE_0; // Bidirectional. Settings
 const MIDI_IMU_SETTINGS_END =  MIDI_CC_109_VALUE_32; // Bidirectional. Settings for current instrument: indicates IMUsettings[32] is about to be sent with CC 105. 
 
 const MIDI_CUSTOM_CHARTS_RCVD = MIDI_CC_109_VALUE_100 ////from WARBL. WARBL2 Custom fingering charts - indicate success
+const MIDI_TERNARY_CHARTS_RCVD = MIDI_CC_109_VALUE_104 //from WARBL. Ternary custom chart upload success
 const MIDI_EXPRESSION_DEPTH = MIDI_CC_104_VALUE_14; // Bidirectional. Settings for current instrument: indicates ED[1] is about to be sent with CC 105. 
 const MIDI_SEND_PRESSURE = MIDI_CC_104_VALUE_15; // Bidirectional. Settings for current instrument: indicates ED[2] is about to be sent with CC 105. 
 const MIDI_CURVE = MIDI_CC_104_VALUE_16; // Bidirectional. Settings for current instrument: indicates ED[3] is about to be sent with CC 105. 

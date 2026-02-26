@@ -744,6 +744,18 @@ void getFingers() {
             bitWrite(holeCovered, i, 0);  // Decide which holes are uncovered -- the "hole uncovered" reading is a little less then the "hole covered" reading, to prevent oscillations.
         }
     }
+
+    // For ternary charts, detect thumb pinch and encode in bit 9 for debounce.
+    if (WARBL2CustomChartIsTernary) {
+        if (!bitRead(holeCovered, 8) && toneholeRead[8] > senseDistance + 4) {
+            bitWrite(holeCovered, 9, 1);   // Enter pinched (with 4-unit hysteresis)
+        } else if (bitRead(holeCovered, 8) || toneholeRead[8] <= senseDistance) {
+            bitWrite(holeCovered, 9, 0);   // Exit pinched
+        }
+        // Dead zone between senseDistance and senseDistance+4: no change (hysteresis)
+    } else {
+        bitWrite(holeCovered, 9, 0);       // Always clear for non-ternary
+    }
 }
 
 
@@ -889,8 +901,9 @@ void sendToConfig(bool newPattern, bool newPressure) {
             pressureSendTimer = nowtime;
         }
 
-        if (patternChanged && (nowtime - patternSendTimer) > 25) {                              // If some time has past, send the new pattern to the Config Tool.
-            sendMIDICouplet(MIDI_CC_114, holeCovered >> 7, MIDI_CC_115, lowByte(holeCovered));  // Because it's MIDI we have to send it in two 7-bit chunks.
+        if (patternChanged && (nowtime - patternSendTimer) > 25) {                                          // If some time has past, send the new pattern to the Config Tool.
+            unsigned int maskedHoleCovered = holeCovered & 0x1FF;                                          // Strip bit 9 (ternary pinch flag) before sending.
+            sendMIDICouplet(MIDI_CC_114, maskedHoleCovered >> 7, MIDI_CC_115, lowByte(maskedHoleCovered));  // Because it's MIDI we have to send it in two 7-bit chunks.
             patternChanged = false;
         }
 
@@ -920,6 +933,18 @@ byte getNote(unsigned int fingerPattern) {
             bitClear(tempCovered, 7);
         }
         ret = charts[modeSelector[preset]][tempCovered];
+    } else if (WARBL2CustomChartIsTernary) {
+        // Ternary custom chart: use 3-state thumb lookup.
+        byte front_fingers = tempCovered & 0x7F;
+        byte thumb_state;
+        if (bitRead(tempCovered, 7)) {
+            thumb_state = THUMB_CLOSED;
+        } else if (bitRead(fingerPattern, 9)) {   // Pinch flag from getFingers()
+            thumb_state = THUMB_PINCHED;
+        } else {
+            thumb_state = THUMB_OPEN;
+        }
+        ret = get_chart_entry(thumb_state, front_fingers);
     } else {                                 // Otherwise read from the currently selected custom chart.
         if (breathMode == kPressureThumb) {  // If we're using the thumb for register control we only look at the first half of the custom chart (ignoring the half with the thumb hole covered).
             bitClear(tempCovered, 7);
@@ -945,6 +970,45 @@ byte getNote(unsigned int fingerPattern) {
 }
 
 
+// Look up a note from the active chart using ternary thumb state.
+// thumb_state: THUMB_CLOSED (0), THUMB_PINCHED (1), or THUMB_OPEN (2).
+// front_fingers: 7-bit value (bits 0-6) representing the front hole pattern (bell sensor excluded).
+// For built-in charts (256-entry), pinched maps to closed since they have no pinched section.
+// For custom charts, RAM layout is always [open:128][closed:128][pinched:128].
+byte get_chart_entry(byte thumb_state, byte front_fingers) {
+    front_fingers &= 0x7F;  // Mask to 7 bits.
+
+    if (modeSelector[mode] < kWARBL2Custom1) {
+        // Built-in chart: 256-entry legacy format. Index 0-127 = thumb open, 128-255 = thumb closed.
+        if (thumb_state == THUMB_OPEN) {
+            return charts[modeSelector[mode]][front_fingers];
+        } else {
+            // Both THUMB_CLOSED and THUMB_PINCHED map to the closed section.
+            return charts[modeSelector[mode]][front_fingers | 0x80];
+        }
+    } else {
+        // Custom chart: RAM layout [open:128][closed:128][pinched:128].
+        uint16_t index;
+        switch (thumb_state) {
+            case THUMB_CLOSED:  index = 128 + front_fingers; break;
+            case THUMB_PINCHED: index = 256 + front_fingers; break;
+            default:            index = front_fingers; break;         // THUMB_OPEN
+        }
+        return WARBL2CustomChart[index];
+    }
+}
+
+
+// Returns true if the given chart slot contains a 384-entry ternary chart.
+// chart_slot: a mode selector value (e.g. kWARBL2Custom1 through kWARBL2Custom4).
+// Built-in charts always return false.
+bool is_ternary_chart(byte chart_slot) {
+    if (chart_slot < kWARBL2Custom1 || chart_slot > kWARBL2Custom4) {
+        return false;
+    }
+    byte slot = chart_slot - kWARBL2Custom1;
+    return readEEPROM(EEPROM_CUSTOM_CHART_VERSION_START + slot) == CUSTOM_CHART_VERSION_TERNARY;
+}
 
 
 
@@ -989,7 +1053,7 @@ void getShift() {
 
     // ToDo: Are there any others that don't use the thumb that can be added here?
     // If we're using the left thumb to control the regiser with a fingering patern that doesn't normally use the thumb
-    else if ((breathMode == kPressureThumb && (modeSelector[preset] == kModeEVI2 || modeSelector[preset] == kModeEVI3 || modeSelector[preset] == kWARBL2Custom1 || modeSelector[preset] == kWARBL2Custom2 || modeSelector[preset] == kWARBL2Custom3 || modeSelector[preset] == kWARBL2Custom4 || modeSelector[preset] == kModeWhistle || modeSelector[preset] == kModeChromatic || modeSelector[preset] == kModeNAF))) {
+    else if ((breathMode == kPressureThumb && !WARBL2CustomChartIsTernary && (modeSelector[preset] == kModeEVI2 || modeSelector[preset] == kModeEVI3 || modeSelector[preset] == kWARBL2Custom1 || modeSelector[preset] == kWARBL2Custom2 || modeSelector[preset] == kWARBL2Custom3 || modeSelector[preset] == kWARBL2Custom4 || modeSelector[preset] == kModeWhistle || modeSelector[preset] == kModeChromatic || modeSelector[preset] == kModeNAF))) {
         byte thumbShift = getThumbHalfHoleShift();                      // Number of registers shifted by thumb
         shift = shift + (thumbShift * ED[preset][OVERBLOW_SEMITONES]);  // Add an octave jump to the transposition if necessary.
     }
@@ -1602,7 +1666,7 @@ void getSlide() {
             if (pitchBendModeSelector[preset] == kPitchBendSlideVibrato && offsetSteps < -offsetLimit) {  // Added by AM 5/24 to make the slide behavior more like that of the original WARBL.
                 offsetSteps = -offsetLimit;
             }
-            if (breathMode == kPressureThumb && i == 8 && (bitRead(halfHoleEnabled, 7) == 1) && bitRead(holeCovered, 8) != 1) {  // If we're using the thumb for register shift, go ahead and detect that now.
+            if (breathMode == kPressureThumb && i == 8 && bitRead(halfHoleEnabled, 7) == 1 && bitRead(holeCovered, 8) != 1) {  // If we're using the thumb for register shift, go ahead and detect that now.
                 getHalfholePitchbend(i);
             }
 
@@ -2359,18 +2423,38 @@ void handleControlChange(byte source, byte channel, byte number, byte value) {
                     loadPrefs();
                 }
 
-                else if (pressureReceiveMode >= MIDI_CUSTOM_CHARTS_OFFSET_START && pressureReceiveMode <= MIDI_CUSTOM_CHARTS_OFFSET_END) {  // WARBL2 Custom fingering charts
+                else if (pressureReceiveMode >= MIDI_CUSTOM_CHARTS_OFFSET_START && pressureReceiveMode <= MIDI_CUSTOM_CHARTS_OFFSET_END) {  // WARBL2 legacy custom fingering charts (256-entry)
                     blinkNumber[GREEN_LED] = 0;
                     WARBL2CustomChart[WARBL2CustomChartReceiveByte] = value;  // Put the value in the custom chart.
                     WARBL2CustomChartReceiveByte++;                           // Increment the location.
 
-                    if (WARBL2CustomChartReceiveByte == 256) {
-                        WARBL2CustomChartReceiveByte = 0;  // Reset for next time;
-                        for (int i = 0; i < 256; i++) {    // Write the chart to EEPROM.
-                            writeEEPROM((EEPROM_CUSTOM_FINGERING_START + (256 * (pressureReceiveMode - MIDI_CUSTOM_CHARTS_OFFSET_START))) + i, WARBL2CustomChart[i]);
+                    if (WARBL2CustomChartReceiveByte == CUSTOM_CHART_LEGACY_SIZE) {
+                        WARBL2CustomChartReceiveByte = 0;  // Reset for next time.
+                        byte slot = pressureReceiveMode - MIDI_CUSTOM_CHARTS_OFFSET_START;
+                        for (int i = 0; i < CUSTOM_CHART_LEGACY_SIZE; i++) {  // Write the chart to legacy EEPROM area.
+                            writeEEPROM((EEPROM_CUSTOM_FINGERING_START + (CUSTOM_CHART_LEGACY_SIZE * slot)) + i, WARBL2CustomChart[i]);
                         }
+                        writeEEPROM(EEPROM_CUSTOM_CHART_VERSION_START + slot, CUSTOM_CHART_VERSION_LEGACY);  // Mark as legacy format.
                         blinkNumber[GREEN_LED] = 3;
                         sendMIDI(MIDI_CUSTOM_CHARTS_RCVD);  // Indicate success.
+                        loadPrefs();
+                    }
+                }
+
+                else if (pressureReceiveMode >= MIDI_TERNARY_CHARTS_OFFSET_START && pressureReceiveMode <= MIDI_TERNARY_CHARTS_OFFSET_END) {  // WARBL2 ternary custom fingering charts (384-entry)
+                    blinkNumber[GREEN_LED] = 0;
+                    WARBL2CustomChart[WARBL2CustomChartReceiveByte] = value;
+                    WARBL2CustomChartReceiveByte++;
+
+                    if (WARBL2CustomChartReceiveByte == CUSTOM_CHART_TERNARY_SIZE) {
+                        WARBL2CustomChartReceiveByte = 0;
+                        byte slot = pressureReceiveMode - MIDI_TERNARY_CHARTS_OFFSET_START;
+                        writeEEPROM(EEPROM_CUSTOM_CHART_VERSION_START + slot, CUSTOM_CHART_VERSION_TERNARY);  // Mark as ternary format.
+                        for (int i = 0; i < CUSTOM_CHART_TERNARY_SIZE; i++) {  // Write the chart to ternary EEPROM area.
+                            writeEEPROM(EEPROM_CUSTOM_TERNARY_START + (slot * CUSTOM_CHART_TERNARY_SIZE) + i, WARBL2CustomChart[i]);
+                        }
+                        blinkNumber[GREEN_LED] = 3;
+                        sendMIDI(MIDI_TERNARY_CHARTS_RCVD);  // Indicate ternary success.
                         loadPrefs();
                     }
                 }
@@ -2380,8 +2464,10 @@ void handleControlChange(byte source, byte channel, byte number, byte value) {
 
             /////// CC 109
             if ((number == MIDI_CC_109 && value < kIMUnVariables)
-                || (number == MIDI_CC_109 && value >= MIDI_CUSTOM_CHARTS_START && value <= MIDI_CUSTOM_CHARTS_END)) {  // Indicates that value for IMUsettings variable will be sent on CC 105.
-                pressureReceiveMode = value + MIDI_CC_109_OFFSET;                                                      // Add to the value because lower pressureReceiveModes are used for other variables.
+                || (number == MIDI_CC_109 && value >= MIDI_CUSTOM_CHARTS_START && value <= MIDI_CUSTOM_CHARTS_END)
+                || (number == MIDI_CC_109 && value >= MIDI_TERNARY_CHARTS_START && value <= MIDI_TERNARY_CHARTS_END)) {  // Indicates that value for IMUsettings variable or chart data will be sent on CC 105.
+                pressureReceiveMode = value + MIDI_CC_109_OFFSET;                                                         // Add to the value because lower pressureReceiveModes are used for other variables.
+                WARBL2CustomChartReceiveByte = 0;  // Reset chart receive counter when starting a new chart upload.
                 blinkNumber[GREEN_LED] = 0;
             }
 
@@ -3449,8 +3535,33 @@ void loadPrefs() {
 
     // Read a custom chart from EEPROM if we're using one.
     if (modeSelector[preset] == kWARBL2Custom1 || modeSelector[preset] == kWARBL2Custom2 || modeSelector[preset] == kWARBL2Custom3 || modeSelector[preset] == kWARBL2Custom4) {
-        for (int i = 0; i < 256; i++) {
-            WARBL2CustomChart[i] = readEEPROM((EEPROM_CUSTOM_FINGERING_START + (256 * (modeSelector[preset] - 67))) + i);
+        byte slot = modeSelector[preset] - kWARBL2Custom1;
+        byte version = readEEPROM(EEPROM_CUSTOM_CHART_VERSION_START + slot);
+
+        if (version == CUSTOM_CHART_VERSION_TERNARY) {
+            // Load 384-byte ternary chart. EEPROM format: [closed:128][pinched:128][open:128].
+            // RAM format: [open:128][closed:128][pinched:128] (keeps [0..255] compatible with getNote).
+            int base = EEPROM_CUSTOM_TERNARY_START + (slot * CUSTOM_CHART_TERNARY_SIZE);
+            for (int i = 0; i < 128; i++) {
+                WARBL2CustomChart[i] = readEEPROM(base + 256 + i);        // open (EEPROM[256..383]) → RAM[0..127]
+            }
+            for (int i = 0; i < 128; i++) {
+                WARBL2CustomChart[128 + i] = readEEPROM(base + i);        // closed (EEPROM[0..127]) → RAM[128..255]
+            }
+            for (int i = 0; i < 128; i++) {
+                WARBL2CustomChart[256 + i] = readEEPROM(base + 128 + i);  // pinched (EEPROM[128..255]) → RAM[256..383]
+            }
+            WARBL2CustomChartIsTernary = true;
+        } else {
+            // Load legacy 256-byte chart from old area. Already in [open:128][closed:128] format.
+            for (int i = 0; i < 256; i++) {
+                WARBL2CustomChart[i] = readEEPROM(EEPROM_CUSTOM_FINGERING_START + (256 * slot) + i);
+            }
+            // Pinched section defaults to a copy of the closed section (preserves current behavior).
+            for (int i = 0; i < 128; i++) {
+                WARBL2CustomChart[256 + i] = WARBL2CustomChart[128 + i];
+            }
+            WARBL2CustomChartIsTernary = false;
         }
     }
 

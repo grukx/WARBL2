@@ -374,7 +374,15 @@
                      Custom Fingering Configuration
                      <button type="button" class="infocircle" onClick="modal(19)">  <img  class = "info" src="img/info-circle.svg"></img></button>
                   </h2>
+                  <div id="ternaryToggleContainer">
+                     <label class="switch" id="ternarySwitch">
+                        <input type="checkbox" id="ternaryCheckbox" onChange="toggleTernaryMode(this.checked)" />
+                        <span class="slider round"></span>
+                     </label>
+                     <span class="ternaryToggleLabel noTouch">Ternary thumb mode (384 entries)</span>
+                  </div>
                   <textarea placeholder="Paste custom chart here" id="WARBL2CustomTextArea"></textarea>
+                  <button type="button" class="smallbutton noTouch" id="copyClosedToPinchedBtn" style="display:none;" onClick="copyClosedToPinched()">Copy closed &rarr; pinched</button>
                   <button type="button" class="smallbutton noTouch WARBL2customFingeringOkay" onClick="customFingeringOkay()">BACK</button>
                   <div class="WARBL2customFillContainer">
                      <div class="styled-fingering-select blue semi-square" id="WARBL2customFingeringFillContainer">
@@ -2615,10 +2623,21 @@ The pitch bend value received from the WARBL is shown at the right, along with a
                <h1>Custom Fingering Configuration</h1>
                <div>
                   <p>
-                     WARBL2 has the ability to store up to four completely customizable fingering charts. Each chart contains MIDI notes for every possible combination of the 8 tone holes (the bell sensor is not used). There are 256 such possible combinations. 
+                     WARBL2 has the ability to store up to four completely customizable fingering charts. Each chart contains MIDI notes for every possible combination of the 8 tone holes (the bell sensor is not used). There are 256 such possible combinations.
                   </p>
                   <p>
-                     You will be pasting a list of 256 MIDI notes into the field at the left. To create your custom fingering chart, there is a special Google Sheet available. There is a link for the sheet on the WARBL Documentation page, and there is more information about how to use it in the User Manual and on the Videos page. You don't have to use this sheet but it helps simplify the process of making a chart. You'll need to save your own copy of the sheet so you can edit it.
+                     <b>Ternary thumb mode:</b> Enable this to create 384-entry charts that distinguish between three thumb states: closed, pinched, and open. This gives 128 entries per thumb state (128 &times; 3 = 384), ordered as follows:
+                  </p>
+                  <ul>
+                     <li><b>Entries 1&ndash;128:</b> Thumb closed &mdash; first octave notes (thumb fully covering the hole)</li>
+                     <li><b>Entries 129&ndash;256:</b> Thumb pinched &mdash; second octave notes (thumb half-hole)</li>
+                     <li><b>Entries 257&ndash;384:</b> Thumb open &mdash; third octave / top notes (thumb fully lifted)</li>
+                  </ul>
+                  <p>
+                     Within each section, the 128 entries correspond to every combination of the 7 front tone holes (L1, L2, L3, R1, R2, R3, R4). Entry 1 in each section is all holes open, and entry 128 is all holes closed. The <b>Copy closed &rarr; pinched</b> button copies the thumb-closed section into the thumb-pinched section as a starting point for editing. A detailed reference with examples is available in the <code>charts/</code> folder in the WARBL2 source code.
+                  </p>
+                  <p>
+                     You will be pasting a list of MIDI notes into the field at the left (256 for standard charts, or 384 for ternary). Values can be separated by newlines or commas. To create your custom fingering chart, there is a special Google Sheet available. There is a link for the sheet on the WARBL Documentation page, and there is more information about how to use it in the User Manual and on the Videos page. You don't have to use this sheet but it helps simplify the process of making a chart. You'll need to save your own copy of the sheet so you can edit it.
                   </p>
                   <p>
                      Once you have made your list of MIDI note numbers, paste the values into the field at the left. Next, select one of four custom charts in the center dropdown menu as the location for saving a chart (if you have previously saved a chart in this same location it will be overwritten). It will take several seconds to load the new chart onto the WARBL2. After you have done this, click <b>Back</b> and then select your custom chart from the Fingering Pattern dropdown menu (and save changes if desired).

@@ -354,9 +354,9 @@ input {
 
 #WARBL2CustomTextArea {
 	position: absolute;
-	width: 100px;
-	height: 75px;
-	left: 240px;
+	width: 350px;
+	height: 50px;
+	left: 50px;
 	top: 320px;
 	resize: none;
 }
@@ -686,6 +686,37 @@ input {
 #WARBL2customControls {
 	display: none;
 	position: absolute;
+}
+
+#ternaryToggleContainer {
+	position: absolute;
+	left: 50px;
+	top: 377px;
+	z-index: 100;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+#ternarySwitch {
+	position: relative;
+	top: auto;
+	left: auto;
+}
+
+.ternaryToggleLabel {
+	font-size: 12px;
+	white-space: nowrap;
+	margin-left: 55px;
+}
+
+#copyClosedToPinchedBtn {
+	position: absolute;
+	width: 170px !important;
+	height: 30px !important;
+	left: 50px !important;
+	top: 455px;
+	font-size: 12px;
 }
 
 #configureCustomFingering{
