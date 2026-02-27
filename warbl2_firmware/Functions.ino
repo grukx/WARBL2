@@ -746,13 +746,15 @@ void getFingers() {
     }
 
     // For ternary charts, detect thumb pinch and encode in bit 9 for debounce.
+    // Pinch threshold at 40% of the sensor range above senseDistance.
     if (WARBL2CustomChartIsTernary) {
-        if (!bitRead(holeCovered, 8) && toneholeRead[8] > senseDistance + 4) {
+        int pinchThreshold = ((toneholeCovered[8] - senseDistance) * 2 / 5) + senseDistance;
+        if (!bitRead(holeCovered, 8) && toneholeRead[8] > pinchThreshold + 4) {
             bitWrite(holeCovered, 9, 1);   // Enter pinched (with 4-unit hysteresis)
-        } else if (bitRead(holeCovered, 8) || toneholeRead[8] <= senseDistance) {
+        } else if (bitRead(holeCovered, 8) || toneholeRead[8] <= pinchThreshold) {
             bitWrite(holeCovered, 9, 0);   // Exit pinched
         }
-        // Dead zone between senseDistance and senseDistance+4: no change (hysteresis)
+        // Dead zone between pinchThreshold and pinchThreshold+4: no change (hysteresis)
     } else {
         bitWrite(holeCovered, 9, 0);       // Always clear for non-ternary
     }
