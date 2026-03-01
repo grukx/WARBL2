@@ -2,7 +2,7 @@
 
 //#define RELEASE  // Uncomment for release version (turns off CDC to make the device USB class compliant). Comment out to be able to print to the serial monitor.
 
-#define VERSION 46  // Firmware version (without decimal point)
+#define VERSION 47  // Firmware version (without decimal point)
 //#define PROTOTYPE46                 // Hardware -- version 46 uses older pinout without the expansion port or the ability to reprogram the ATmega. Comment this out for all later versions.
 #define HARDWARE_REVISION 49        // Not currently used. Can be written to EEPROM 1992 to store revision number.
 #define ATMEGA_FIRMWARE_VERSION 10  // Remember which ATmega firmware version we have installed so we kow when to update it.
@@ -183,8 +183,9 @@
 #define HALFHOLE_USE_MIDI_NOTE 56  // Boolean, send a new MIDI note instead of pitchbend when halfholing.
 #define HALFHOLE_INVERT_THUMB 57   // Boolean, invert the thumb halfhole register functionality.
 #define USE_THUMB_FOR_SLIDE 58     // Boolean
-#define ENABLE_REGISTER_HOLD 59    // Boolean -- If IMU register hold mode is enabled (currently not included in Config Tool)
-#define kEXPRESSIONnVariables 60
+#define ENABLE_REGISTER_HOLD 59        // Boolean -- If IMU register hold mode is enabled (currently not included in Config Tool)
+#define TERNARY_PINCH_SENSITIVITY 60   // (0-100) Sensitivity for ternary thumb pinch detection. Higher = easier to trigger. Default 60 (= 40% threshold).
+#define kEXPRESSIONnVariables 61
 
 // Button combinations/gestures
 #define CLICK_1 0
@@ -457,7 +458,7 @@
 /* 119 unused */
 #define MIDI_CC_102_VALUE_120 120  // from WARBL. Bell sensor disconnected (no longer used by WARBL2)
 #define MIDI_CC_102_VALUE_121 121  // from WARBL. Bell sensor connected (no longer used by WARBL2)
-/* 122 unused */
+#define MIDI_CC_102_VALUE_122 122  // from WARBL. Ternary custom chart is active on current preset
 #define MIDI_CC_102_VALUE_123 123  // from Config Tool. save as defaults for current preset
 #define MIDI_CC_102_VALUE_124 124  // from Config Tool. save as defaults for all presets
 #define MIDI_CC_102_VALUE_125 125  // from Config Tool. restore factory settings
@@ -574,8 +575,9 @@
 #define MIDI_CC_104_VALUE_106 106  // Bidirectional. Settings for current preset: indicates ED[57] is about to be sent with CC 105.
 #define MIDI_CC_104_VALUE_107 107  // Bidirectional. Settings for current preset: indicates ED[58] is about to be sent with CC 105.
 #define MIDI_CC_104_VALUE_108 108  // Bidirectional. Settings for current preset: indicates ED[59] is about to be sent with CC 105.
+#define MIDI_CC_104_VALUE_109 109  // Bidirectional. Settings for current preset: indicates ED[60] is about to be sent with CC 105.
 //
-/* 109-127 unused */
+/* 110-127 unused */
 
 #define MIDI_CC_105 105  // Bidirectional - From Warbl. Values 0-127. Settings for current preset: value of above variable indicated by CC 104 or variable indicated by CC 109 (see below)
 
@@ -736,6 +738,7 @@
 #define MIDI_RESTORE_FACTORY MIDI_CC_102_VALUE_125           // from Config Tool. restore factory settings
 #define MIDI_ENTER_COMM_MODE MIDI_CC_102_VALUE_126           // from Config Tool. enter communication mode
 #define MIDI_START_CALIB MIDI_CC_102_VALUE_127               // from Config Tool. begin autocalibration
+#define MIDI_TERNARY_ACTIVE MIDI_CC_102_VALUE_122            // from WARBL. Ternary custom chart is active
 
 #define MIDI_STARTUP_CALIB MIDI_CC_106_VALUE_39             // Bidirectional. calibrate at startup
 #define MIDI_USE_LEARNED_CALIB MIDI_CC_106_VALUE_40         // Bidirectional. use learned calibration
@@ -773,7 +776,7 @@
 #define MIDI_SWITCHES_VARS_START MIDI_CC_104_VALUE_40                     // Bidirectional. Settings for current preset: indicates that switches[0] is about to be sent with CC 105.
 #define MIDI_SWITCHES_VARS_END MIDI_CC_104_VALUE_53                       // Bidirectional. Settings for current preset: indicates that switches[13] is about to be sent with CC 105. UNUSED?
 #define MIDI_ED_VARS2_START MIDI_CC_104_VALUE_70                          // Bidirectional. Settings for current preset: indicates ED[21] is about to be sent with CC 105.
-#define MIDI_ED_VARS2_END MIDI_CC_104_VALUE_108                           // Bidirectional. Settings for current preset: indicates ED[] is about to be sent with CC 105.
+#define MIDI_ED_VARS2_END MIDI_CC_104_VALUE_109                           // Bidirectional. Settings for current preset: indicates ED[60] is about to be sent with CC 105.
 #define MIDI_ED_VARS_NUMBER (MIDI_ED_VARS_END - MIDI_ED_VARS_START + 1)   // ED array number of vars for the first slot
 #define MIDI_ED_VARS2_OFFSET (MIDI_ED_VARS2_START - MIDI_ED_VARS_NUMBER)  // ED array index for 2nd slot of MIDI Msgs
 
@@ -901,7 +904,7 @@
                                             // 343 low byte of vibrato depth  for PRESET 2 (344 high byte)
 #define EEPROM_USE_LEARNED_PRESS_START 345  //values 0-1	use learned calibration - 3 bytes 345-347
 /* 348-350 unused */
-#define EEPROM_ED_VARS_START 351  // 351-530	expression and drones (ED) variables
+#define EEPROM_ED_VARS_START 351  // 351-533	expression and drones (ED) variables
 /* 531-599 unused, room for extending above array or other variables */
 #define EEPROM_WARBL2_SETTINGS_START 600  // 600-602 WARBL2settings array
 /* 603-625 unused, room for extending above array or other variables */

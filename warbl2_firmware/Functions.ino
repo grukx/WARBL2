@@ -746,9 +746,10 @@ void getFingers() {
     }
 
     // For ternary charts, detect thumb pinch and encode in bit 9 for debounce.
-    // Pinch threshold at 40% of the sensor range above senseDistance.
+    // Pinch threshold derived from configurable sensitivity (0-100). Higher = easier to trigger.
     if (WARBL2CustomChartIsTernary) {
-        int pinchThreshold = ((toneholeCovered[8] - senseDistance) * 2 / 5) + senseDistance;
+        int sensitivity = constrain(ED[mode][TERNARY_PINCH_SENSITIVITY], 0, 100);
+        int pinchThreshold = ((toneholeCovered[8] - senseDistance) * (100 - sensitivity) / 100) + senseDistance;
         if (!bitRead(holeCovered, 8) && toneholeRead[8] > pinchThreshold + 4) {
             bitWrite(holeCovered, 9, 1);   // Enter pinched (with 4-unit hysteresis)
         } else if (bitRead(holeCovered, 8) || toneholeRead[8] <= pinchThreshold) {
@@ -3312,6 +3313,10 @@ void sendSettings() {
 
     sendMIDI(MIDI_CC_102_MSG, MIDI_CC_102_VALUE_121);  // Tell the Config Tool that the bell sensor is present (always on this version of the WARBL).
 
+    if (WARBL2CustomChartIsTernary) {
+        sendMIDI(MIDI_CC_102_MSG, MIDI_TERNARY_ACTIVE);  // Tell the Config Tool that a ternary chart is active.
+    }
+
     for (byte i = MIDI_WARBL2_SETTINGS_START; i < MIDI_WARBL2_SETTINGS_START + kWARBL2SETTINGSnVariables; i++) {  // Send the WARBL2settings array.
         sendMIDICouplet(MIDI_CC_106, i, MIDI_CC_119, WARBL2settings[i - MIDI_WARBL2_SETTINGS_START]);
     }
@@ -4449,6 +4454,13 @@ void checkFirmwareVersion() {
                     writeEEPROM(EEPROM_ED_VARS_START + i + ((HALFHOLE_PITCHBEND + n) * 3), ED[preset][(HALFHOLE_PITCHBEND + n)]);
                     writeEEPROM(EEPROM_ED_VARS_START + i + ((HALFHOLE_PITCHBEND + n) * 3) + EEPROM_FACTORY_SETTINGS_START, ED[preset][(HALFHOLE_PITCHBEND + n)]);
                 }
+            }
+        }
+
+        if (currentVersion < 47) {  // Manage all changes made in version 47.
+            for (byte i = 0; i < 3; i++) {
+                writeEEPROM(EEPROM_ED_VARS_START + i + (TERNARY_PINCH_SENSITIVITY * 3), 60);                                    // Default pinch sensitivity 60 (= 40% threshold).
+                writeEEPROM(EEPROM_ED_VARS_START + i + (TERNARY_PINCH_SENSITIVITY * 3) + EEPROM_FACTORY_SETTINGS_START, 60);
             }
         }
 
