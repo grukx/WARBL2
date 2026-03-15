@@ -748,7 +748,7 @@ void getFingers() {
     // For ternary charts, detect thumb pinch and encode in bit 9 for debounce.
     // Pinch threshold derived from configurable sensitivity (0-100). Higher = easier to trigger.
     if (WARBL2CustomChartIsTernary) {
-        int sensitivity = constrain(ED[mode][TERNARY_PINCH_SENSITIVITY], 0, 100);
+        int sensitivity = constrain(ED[preset][TERNARY_PINCH_SENSITIVITY], 0, 100);
         int pinchThreshold = ((toneholeCovered[8] - senseDistance) * (100 - sensitivity) / 100) + senseDistance;
         if (!bitRead(holeCovered, 8) && toneholeRead[8] > pinchThreshold + 4) {
             bitWrite(holeCovered, 9, 1);   // Enter pinched (with 4-unit hysteresis)
@@ -981,13 +981,13 @@ byte getNote(unsigned int fingerPattern) {
 byte get_chart_entry(byte thumb_state, byte front_fingers) {
     front_fingers &= 0x7F;  // Mask to 7 bits.
 
-    if (modeSelector[mode] < kWARBL2Custom1) {
+    if (modeSelector[preset] < kWARBL2Custom1) {
         // Built-in chart: 256-entry legacy format. Index 0-127 = thumb open, 128-255 = thumb closed.
         if (thumb_state == THUMB_OPEN) {
-            return charts[modeSelector[mode]][front_fingers];
+            return charts[modeSelector[preset]][front_fingers];
         } else {
             // Both THUMB_CLOSED and THUMB_PINCHED map to the closed section.
-            return charts[modeSelector[mode]][front_fingers | 0x80];
+            return charts[modeSelector[preset]][front_fingers | 0x80];
         }
     } else {
         // Custom chart: RAM layout [open:128][closed:128][pinched:128].
