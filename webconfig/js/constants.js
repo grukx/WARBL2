@@ -132,7 +132,7 @@ const MIDI_CC_102_VALUE_0 = 0; // unused
     /* 119 unused */
     const MIDI_CC_102_VALUE_120 = 120; //from WARBL. bell sensor disconnected	
     const MIDI_CC_102_VALUE_121 = 121; //from WARBL. bell sensor connected	
-    /* 122 unused */
+    const MIDI_CC_102_VALUE_122 = 122; //from WARBL. ternary chart active
     const MIDI_CC_102_VALUE_123 = 123; //from Config Tool. save as defaults for current mode
     const MIDI_CC_102_VALUE_124 = 124; //from Config Tool. save as defaults for all instruments
     const MIDI_CC_102_VALUE_125 = 125; //from Config Tool. restore factory settings
@@ -247,12 +247,12 @@ const MIDI_CC_104 = 104; // from WARBL & from Config Tool. Various values as fol
 	const MIDI_CC_104_VALUE_105 = 105; // Bidirectional. Settings for current instrument: indicates ED[56] is about to be sent with CC 105. 
 	const MIDI_CC_104_VALUE_106 = 106; // Bidirectional. Settings for current instrument: indicates ED[57] is about to be sent with CC 105. 
 	const MIDI_CC_104_VALUE_107 = 107; // Bidirectional. Settings for current instrument: indicates ED[58] is about to be sent with CC 105. 
-	const MIDI_CC_104_VALUE_108 = 108; // Bidirectional. Settings for current instrument: indicates ED[59] is about to be sent with CC 105. 
-	const MIDI_CC_104_VALUE_109 = 109; // Bidirectional. Settings for current instrument: indicates ED[60] is about to be sent with CC 105. 
-	const MIDI_CC_104_VALUE_110 = 110; // Bidirectional. Settings for current instrument: indicates ED[61] is about to be sent with CC 105. 
-	const MIDI_CC_104_VALUE_111 = 111; // Bidirectional. Settings for current instrument: indicates ED[62] is about to be sent with CC 105. 
-; //
-    /* 112-127 unused */
+	const MIDI_CC_104_VALUE_108 = 108; // Bidirectional. Settings for current instrument: indicates ED[59] is about to be sent with CC 105.
+	const MIDI_CC_104_VALUE_109 = 109; // Bidirectional. Settings for current instrument: indicates ED[60] is about to be sent with CC 105.
+	const MIDI_CC_104_VALUE_110 = 110; // Bidirectional. Settings for current instrument: indicates ED[61] is about to be sent with CC 105.
+	const MIDI_CC_104_VALUE_111 = 111; // Bidirectional. Settings for current instrument: indicates ED[62] is about to be sent with CC 105.
+	const MIDI_CC_104_VALUE_112 = 112; // Bidirectional. Settings for current instrument: indicates ED[63] is about to be sent with CC 105.
+    /* 113-127 unused */
 
 const MIDI_CC_105 = 105; // Bidirectional - From Warbl. Values 0-127. Settings for current instrument: value of above variable indicated by CC 104 or variable indicated by CC 109 (see below)
 
@@ -445,7 +445,11 @@ const MIDI_CC_109 = 109; // From WARBL. Values as follows:
     const MIDI_CC_109_VALUE_101 = 101; // Bidirectional. Indicates that WARBL2 custom fingering chart 2 is about to be sent on CC 105. 
     const MIDI_CC_109_VALUE_102 = 102; // Bidirectional. Indicates that WARBL2 custom fingering chart 3 is about to be sent on CC 105. 
     const MIDI_CC_109_VALUE_103 = 103; // Bidirectional. Indicates that WARBL2 custom fingering chart 4 is about to be sent on CC 105. 
-	/* 104-126	unused */
+    const MIDI_CC_109_VALUE_104 = 104; // Bidirectional. Indicates that WARBL2 ternary custom fingering chart 1 (384-entry) is about to be sent on CC 105. Same command from WARBL indicates success.
+    const MIDI_CC_109_VALUE_105 = 105; // Bidirectional. Ternary custom fingering chart 2
+    const MIDI_CC_109_VALUE_106 = 106; // Bidirectional. Ternary custom fingering chart 3
+    const MIDI_CC_109_VALUE_107 = 107; // Bidirectional. Ternary custom fingering chart 4
+	/* 108-126	unused */
     const MIDI_CC_109_VALUE_127 = 127; // From WARBL. Indicates button/gesture action will be sent on CC 105
 
 
@@ -509,7 +513,7 @@ const MIDI_ED_VARS_END = MIDI_CC_104_VALUE_33; // Bidirectional. Settings for cu
 const MIDI_SWITCHES_VARS_START = MIDI_CC_104_VALUE_40; // Bidirectional. Settings for current instrument: indicates that switches[0] is about to be sent with CC 105. 
 const MIDI_SWITCHES_VARS_END = MIDI_CC_104_VALUE_53; // Bidirectional. Settings for current instrument: indicates that switches[13] is about to be sent with CC 105. UNUSED?
 const MIDI_ED_VARS2_START = MIDI_CC_104_VALUE_70; // Bidirectional. Settings for current instrument: indicates ED[21] is about to be sent with CC 105. 
-const MIDI_ED_VARS2_END = MIDI_CC_104_VALUE_111; // Bidirectional. Settings for current instrument: indicates ED[] is about to be sent with CC 105. 
+const MIDI_ED_VARS2_END = MIDI_CC_104_VALUE_112; // Bidirectional. Settings for current instrument: indicates ED[63] is about to be sent with CC 105.
 const MIDI_ED_VARS_NUMBER = MIDI_ED_VARS_END - MIDI_ED_VARS_START + 1; //ED array number of vars for the first slot
 const MIDI_ED_VARS2_OFFSET = MIDI_ED_VARS2_START - MIDI_ED_VARS_NUMBER; //ED array index for 2nd slot of MIDI Msgs
 
@@ -527,6 +531,9 @@ const MIDI_CUSTOM_CHARTS_START = MIDI_CC_109_VALUE_100; //Beginning of WARBL2 Cu
 const MIDI_CUSTOM_CHARTS_END = MIDI_CC_109_VALUE_103; //End of WARBL2 CustomCharts
 const MIDI_CUSTOM_CHARTS_OFFSET_START = MIDI_CC_109_OFFSET + MIDI_CUSTOM_CHARTS_START; //Beginning of WARBL2 CustomCharts
 const MIDI_CUSTOM_CHARTS_OFFSET_END = MIDI_CC_109_OFFSET + MIDI_CUSTOM_CHARTS_END; //End of WARBL2 CustomCharts
+
+const MIDI_TERNARY_CHARTS_START = MIDI_CC_109_VALUE_104; //Beginning of WARBL2 ternary CustomCharts (384-entry)
+const MIDI_TERNARY_CHARTS_END = MIDI_CC_109_VALUE_107; //End of WARBL2 ternary CustomCharts
 
 /* Various single Values */
 const MIDI_MOMENTARY_OFF = MIDI_CC_102_VALUE_117; // Bidirectional. momentary off
@@ -551,6 +558,7 @@ const MIDI_IMU_SETTINGS_START =  MIDI_CC_109_VALUE_0; // Bidirectional. Settings
 const MIDI_IMU_SETTINGS_END =  MIDI_CC_109_VALUE_32; // Bidirectional. Settings for current instrument: indicates IMUsettings[32] is about to be sent with CC 105. 
 
 const MIDI_CUSTOM_CHARTS_RCVD = MIDI_CC_109_VALUE_100 ////from WARBL. WARBL2 Custom fingering charts - indicate success
+const MIDI_TERNARY_CHARTS_RCVD = MIDI_CC_109_VALUE_104 //from WARBL. Ternary custom chart upload success
 const MIDI_EXPRESSION_DEPTH = MIDI_CC_104_VALUE_14; // Bidirectional. Settings for current instrument: indicates ED[1] is about to be sent with CC 105. 
 const MIDI_SEND_PRESSURE = MIDI_CC_104_VALUE_15; // Bidirectional. Settings for current instrument: indicates ED[2] is about to be sent with CC 105. 
 const MIDI_CURVE = MIDI_CC_104_VALUE_16; // Bidirectional. Settings for current instrument: indicates ED[3] is about to be sent with CC 105. 

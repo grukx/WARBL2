@@ -1034,7 +1034,7 @@ function WARBL_Receive(event, source) {
 						document.getElementById("key0").style.display = "block";
 						document.getElementById("key1").style.display = "none";
 						document.getElementById("key2").style.display = "none";
-						advancedOkay(); //turn off the advanced tab	
+						advancedOkay(); //turn off the advanced tab
 						updateCells();
 						advancedOkayPB();
 						okayCCmap();
@@ -1046,6 +1046,7 @@ function WARBL_Receive(event, source) {
 						backPressure();
 						handleDefault();
 						customFingeringOkay();
+						hideTernaryPinch();
 					}
 					if (data2 == MIDI_CURRENT_MODE_START +1) {
 						document.getElementById("fingering1").checked = true;
@@ -1068,6 +1069,7 @@ function WARBL_Receive(event, source) {
 						backPressure();
 						handleDefault();
 						customFingeringOkay();
+						hideTernaryPinch();
 					}
 					if (data2 == MIDI_CURRENT_MODE_START +2) {
 						document.getElementById("fingering2").checked = true;
@@ -1078,7 +1080,7 @@ function WARBL_Receive(event, source) {
 						document.getElementById("key0").style.display = "none";
 						document.getElementById("key1").style.display = "none";
 						document.getElementById("key2").style.display = "block";
-						advancedOkay(); //turn off the advanced tab	
+						advancedOkay(); //turn off the advanced tab
 						updateCells();
 						advancedOkayPB();
 						okayCCmap();
@@ -1090,6 +1092,7 @@ function WARBL_Receive(event, source) {
 						backPressure();
 						handleDefault();
 						customFingeringOkay();
+						hideTernaryPinch();
 					}
 
 					for (var i = 0; i < 3; i++)  { //receive and handle default preset settings
@@ -1124,15 +1127,19 @@ function WARBL_Receive(event, source) {
 						document.getElementById("v1").classList.add("sensorValueEnabled");
 
 					}
-					if (data2 == MIDI_CC_102_VALUE_120) { //bell sensor disconnected	
+					if (data2 == MIDI_CC_102_VALUE_120) { //bell sensor disconnected
 						document.getElementById("bellSensor").style.opacity = 0.1;
 						document.getElementById("1").disabled = true;
 						document.getElementById("2").disabled = true;
 						document.getElementById("v1").classList.remove("sensorValueEnabled");
 					}
 
+					if (data2 == MIDI_CC_102_VALUE_122) { //ternary chart active
+						showTernaryPinch();
+					}
 
-					for (var i = 0; i < numberOfGestures; i++) { //update button configuration	   
+
+					for (var i = 0; i < numberOfGestures; i++) { //update button configuration
 						if (data2 == MIDI_GESTURE_START + i) {
 							buttonRowWrite = i;
 						}
@@ -1184,10 +1191,10 @@ function WARBL_Receive(event, source) {
 				else if (data1 == MIDI_CC_104) {
 					jumpFactorWrite = data2;
 				} // so we know which pressure setting is going to be received.
-				else if (data1 == MIDI_CC_109 && data2 != MIDI_CUSTOM_CHARTS_RCVD) {
+				else if (data1 == MIDI_CC_109 && data2 != MIDI_CUSTOM_CHARTS_RCVD && data2 != MIDI_TERNARY_CHARTS_RCVD) {
 					jumpFactorWrite = data2 + MIDI_CC_109_OFFSET;
 				} // so we know which WARBL2 IMU setting is going to be received.
-				else if (data1 == MIDI_CC_109 && data2 == MIDI_CUSTOM_CHARTS_RCVD) { //Successful WARBL2 Custom chart receipt
+				else if (data1 == MIDI_CC_109 && (data2 == MIDI_CUSTOM_CHARTS_RCVD || data2 == MIDI_TERNARY_CHARTS_RCVD)) { //Successful WARBL2 Custom chart receipt
 					document.getElementById("sending").innerHTML = "Success!";
 					document.getElementById("WARBL2CustomSuccessOkay").style.display = "block";
 					document.getElementById('WARBL2customFingeringFill').value = '10';
@@ -1501,7 +1508,12 @@ function WARBL_Receive(event, source) {
 					   	var k = document.getElementById("thumbHalfholeRate");
 						k.dispatchEvent(new Event('input'));
 					}
-					
+					else if (jumpFactorWrite == MIDI_ED_VARS2_START +42) {
+					   document.getElementById("ternaryPinchSensitivity").value = data2;
+					   	var k = document.getElementById("ternaryPinchSensitivity");
+						k.dispatchEvent(new Event('input'));
+					}
+
 					else if (jumpFactorWrite == MIDI_ED_VARS2_START +33) {
 					   halfholesLow4bits = data2;
 					}
@@ -2474,6 +2486,22 @@ function sendCustomFingeringFill() {
 
 
 
+function parseChartValues(text) {
+	var values;
+	if (text.indexOf(',') !== -1) {
+		values = text.split(',');
+	} else {
+		values = text.split('\n');
+	}
+	for (var i = 0; i < values.length; i++) {
+		values[i] = values[i].trim();
+	}
+	if (values.length > 0 && values[values.length - 1] === '') {
+		values.pop();
+	}
+	return values;
+}
+
 function sendWARBL2CustomFingeringFill() {
 	modalclose(24);
 	modal(25);
@@ -2481,22 +2509,21 @@ function sendWARBL2CustomFingeringFill() {
 	selection = parseFloat(selection);
 
 	var textArea = document.getElementById('WARBL2CustomTextArea');
-	var lines = textArea.value.split('\n');    // lines is an array of strings
+	var values = parseChartValues(textArea.value);
 
-	// Loop through all lines
-	for (var j = 0; j < lines.length; j++) {
-		//console.log('Line ' + j + ' is ' + lines[j])
+	var isTernary = (values.length === 384);
+	var isLegacy = (values.length === 256);
 
-		//validate
-		if (!(lines.length == 257 || lines.length == 256)) { //there may be a blank line at the end
-			modalclose(25);
-			alert("There must be 256 MIDI notes. Please try again.");
-			document.getElementById('WARBL2customFingeringFill').value = '10';
-			document.getElementById("WARBL2CustomTextArea").value = '';
-			return;
+	if (!isTernary && !isLegacy) {
+		modalclose(25);
+		alert("There must be 256 or 384 MIDI notes. Please try again.");
+		document.getElementById('WARBL2customFingeringFill').value = '10';
+		document.getElementById("WARBL2CustomTextArea").value = '';
+		return;
+	}
 
-		}
-		if (lines[j] < 0 || lines[j] > 127 || isNaN(lines[j])) {
+	for (var j = 0; j < values.length; j++) {
+		if (values[j] < 0 || values[j] > 127 || isNaN(values[j])) {
 			modalclose(25);
 			alert("Each MIDI note must be in the range of 0 to 127.");
 			document.getElementById('WARBL2customFingeringFill').value = '10';
@@ -2504,14 +2531,63 @@ function sendWARBL2CustomFingeringFill() {
 			return;
 		}
 	}
-	//console.log(selection + 100);
-	sendToWARBL(MIDI_CC_109, (selection + MIDI_CUSTOM_CHARTS_START));
-	for (var k = 0; k < 256; k++) {
-		sendToWARBL(MIDI_CC_105, lines[k]);
+
+	if (isTernary) {
+		sendToWARBL(MIDI_CC_109, (selection + MIDI_TERNARY_CHARTS_START));
+		for (var k = 0; k < 384; k++) {
+			sendToWARBL(MIDI_CC_105, values[k]);
+		}
+	} else {
+		sendToWARBL(MIDI_CC_109, (selection + MIDI_CUSTOM_CHARTS_START));
+		for (var k = 0; k < 256; k++) {
+			sendToWARBL(MIDI_CC_105, values[k]);
+		}
+	}
+}
+
+function toggleTernaryMode(enabled) {
+	var container = document.getElementById("WARBL2customControls");
+	var copyBtn = document.getElementById("copyClosedToPinchedBtn");
+
+	if (enabled) {
+		container.classList.add("ternaryMode");
+		copyBtn.style.display = "block";
+		document.getElementById("WARBL2CustomTextArea").placeholder = "Paste 384 values here\n(128 closed + 128 pinched + 128 open)";
+	} else {
+		container.classList.remove("ternaryMode");
+		copyBtn.style.display = "none";
+		document.getElementById("WARBL2CustomTextArea").placeholder = "Paste custom chart here";
+	}
+}
+
+function copyClosedToPinched() {
+	var textArea = document.getElementById("WARBL2CustomTextArea");
+	var values = parseChartValues(textArea.value);
+
+	if (values.length < 128) {
+		alert("Need at least 128 values in the thumb-closed section to copy.");
+		return;
 	}
 
+	var closedSection = values.slice(0, 128);
 
-	//modalclose(25);
+	var result = closedSection.slice();
+	result = result.concat(closedSection);
+
+	if (values.length > 256) {
+		result = result.concat(values.slice(256, 384));
+	} else if (values.length > 128) {
+		var openSection = values.slice(256);
+		while (openSection.length < 128) openSection.push("0");
+		result = result.concat(openSection);
+	} else {
+		var zeros = [];
+		for (var i = 0; i < 128; i++) zeros.push("0");
+		result = result.concat(zeros);
+	}
+
+	var separator = (textArea.value.indexOf(',') !== -1) ? ',' : '\n';
+	textArea.value = result.join(separator);
 }
 
 
@@ -2741,6 +2817,13 @@ function sendhalfholeRate(selection) {
 	blink(1);
 	selection = parseFloat(selection);
 	sendToWARBL(MIDI_CC_104, MIDI_ED_VARS2_START + 32);
+	sendToWARBL(MIDI_CC_105, selection);
+}
+
+function sendTernaryPinchSensitivity(selection) {
+	blink(1);
+	selection = parseFloat(selection);
+	sendToWARBL(MIDI_CC_104, MIDI_ED_VARS2_START + 42);
 	sendToWARBL(MIDI_CC_105, selection);
 }
 
@@ -3996,6 +4079,8 @@ function configureCustomFingering() {
 		document.getElementById("topControls").style.display = "none";
 		document.getElementById('WARBL2customFingeringFill').value = '10';
 		document.getElementById("WARBL2CustomTextArea").value = '';
+		document.getElementById("ternaryCheckbox").checked = false;
+		toggleTernaryMode(false);
 		document.getElementById("WARBL2customControls").style.display = "block";
 	}
 }
@@ -4019,6 +4104,20 @@ function customFingeringOkay() {
 	document.getElementById("buttonBox").style.top = "1390px";
 	}
 	document.getElementById("customFingeringFill").value = "12";
+}
+
+function hideTernaryPinch() {
+	document.getElementById("ternaryPinchContainer").style.display = "none";
+	document.getElementById("halfHoleSetupBox").style.height = "";
+	document.getElementById("box3").style.height = "";
+	document.getElementById("buttonBox").style.top = "";
+}
+
+function showTernaryPinch() {
+	document.getElementById("ternaryPinchContainer").style.display = "block";
+	document.getElementById("halfHoleSetupBox").style.height = "490px";
+	document.getElementById("box3").style.height = "490px";
+	document.getElementById("buttonBox").style.top = "1965px";
 }
 
 function updatePressureValuesForSelection()
@@ -5280,6 +5379,12 @@ jumpSlider24.addEventListener('input', slider24Change);
 function slider24Change() {
 	output24.innerHTML = jumpSlider24.value;
 }
+
+var outputTernaryPinch = document.getElementById("demoTernaryPinch");
+var ternaryPinchSlider = document.getElementById('ternaryPinchSensitivity');
+ternaryPinchSlider.addEventListener('input', function() {
+	outputTernaryPinch.innerHTML = ternaryPinchSlider.value;
+});
 
 
 
