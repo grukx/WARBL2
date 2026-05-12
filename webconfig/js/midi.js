@@ -4108,16 +4108,10 @@ function customFingeringOkay() {
 
 function hideTernaryPinch() {
 	document.getElementById("ternaryPinchContainer").style.display = "none";
-	document.getElementById("halfHoleSetupBox").style.height = "";
-	document.getElementById("box3").style.height = "";
-	document.getElementById("buttonBox").style.top = "";
 }
 
 function showTernaryPinch() {
 	document.getElementById("ternaryPinchContainer").style.display = "block";
-	document.getElementById("halfHoleSetupBox").style.height = "490px";
-	document.getElementById("box3").style.height = "490px";
-	document.getElementById("buttonBox").style.top = "1965px";
 }
 
 function updatePressureValuesForSelection()
